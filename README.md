@@ -100,23 +100,55 @@ cd <repo-name>
 com.rajnish
 ├── entity              # JPA entities (domain model)
 ├── common.enums        # Shared enums (MessageRole, ProjectRole, etc.)
+├── controller           # REST API layer — routing only, no business logic
+├── service              # Service interfaces defined; implementations (planned)
+├── dto                  # Request/response contracts (auth, project, member, file, subscriptions)
 ├── repository           # (planned) Spring Data repositories
-├── service              # (planned) Business logic
-├── controller           # (planned) REST API layer
-├── dto                  # (planned) Request/response contracts
 ├── config               # (planned) Security, MinIO, Stripe, K8s client config
 └── llm                  # (planned) LLM orchestration layer
 ```
 
 ---
 
+## 📡 API Endpoints (in progress)
+
+Controllers and service contracts are wired up; business logic implementations are next. Current routes:
+
+| Area | Method & Path | Purpose |
+|---|---|---|
+| Auth | `POST /api/auth/signup` | Create a new account |
+| Auth | `POST /api/auth/login` | Authenticate, get tokens |
+| Auth | `GET /api/auth/me` | Current user profile |
+| Projects | `GET /api/project` | List current user's projects |
+| Projects | `GET /api/project/{id}` | Get a single project |
+| Projects | `POST /api/project` | Create a project |
+| Projects | `PATCH /api/project/{id}` | Update a project |
+| Projects | `DELETE /api/project/{id}` | Soft-delete a project |
+| Members | `GET /api/projects/{id}/members` | List project members |
+| Members | `POST /api/projects/{id}/members` | Invite a member |
+| Members | `PATCH /api/projects/{id}/members/{memberId}` | Update a member's role |
+| Members | `DELETE /api/projects/{id}/members/{memberId}` | Remove a member |
+| Files | `GET /api/projects/{projectId}/files` | Get project file tree |
+| Files | `GET /api/projects/{projectId}/files/{*path}` | Get file content by path |
+| Billing | `GET /api/plans` | List active plans |
+| Billing | `GET /api/me/subscription` | Current user's subscription |
+| Billing | `POST /api/stripe/checkout` | Create Stripe checkout session |
+| Billing | `POST /api/stripe/portal` | Open Stripe customer portal |
+| Usage | `GET /api/usage/today` | Today's usage for current user |
+| Usage | `GET /api/usage/limits` | Current plan limits |
+
+> ⚠️ Auth isn't wired in yet — `userId` is currently hardcoded as a placeholder in every controller. See [`PROGRESS.md`](./PROGRESS.md) for details.
+
+---
+
 ## 🗺️ Roadmap
 
 - [x] Design core domain model (entities + enums)
+- [x] Controller layer + DTOs + service interfaces (contracts only, no logic yet)
 - [ ] Add JPA annotations (`@Entity`, `@Id`, `@ManyToOne`, etc.) + Flyway/Liquibase migrations
 - [ ] Repository layer
-- [ ] Auth (Spring Security + JWT)
-- [ ] Project CRUD + membership APIs
+- [ ] Auth (Spring Security + JWT) — replace hardcoded `userId` in controllers
+- [ ] Service implementations — business logic (starting with Auth + Project)
 - [ ] Chat session + message APIs
 - [ ] LLM integration (prompt orchestration, tool calls)
 - [ ] File generation → MinIO storage integration
@@ -131,7 +163,7 @@ Full day-by-day log lives in **[PROGRESS.md](./PROGRESS.md)**.
 
 ## 📌 Status
 
-🚧 **Early-stage / actively in development.** Domain modeling phase complete; core Spring Boot wiring in progress.
+🚧 **Early-stage / actively in development.** Domain model, controller layer, DTOs, and service contracts are in place. Business logic implementation and auth wiring are in progress next.
 
 ---
 
