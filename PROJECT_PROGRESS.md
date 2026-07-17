@@ -122,6 +122,45 @@ Tracking daily/weekly progress on this project. **New entries go at the bottom**
 
 ---
 
+## 📅 2026-07-17 — Day 4: Project Service Completed + Project Member Service
+
+**Goal for the day:** Finish the remaining `ProjectService` stubs, and build out the full member/collaborator flow (`ProjectMemberService`).
+
+### ✅ Completed
+- **`ProjectServiceImpl` fully implemented** (was previously stubbed):
+  - `getProjectById` — fetches via `getAccessibleProjectById` helper, maps to response
+  - `updateProject` — fetches, checks the caller is the owner, updates name, saves
+  - `softDelete` — fetches, checks the caller is the owner, sets `deletedAt`, saves
+  - Introduced a shared internal helper `getAccessibleProjectById(projectId, userId)` used by all four methods
+- **`ProjectMemberServiceImpl`** — full implementation:
+  - `getProjectMembers` — returns the owner (mapped specially, since the owner isn't a row in `ProjectMember`) plus all rows from `ProjectMember`
+  - `inviteMember` — owner-only check, looks up invitee by email, blocks self-invite, blocks duplicate invites (via `existsById` on the composite key), saves
+  - `updateMemberRole` — fetches project + member, updates role, saves
+  - `removeProjectMember` — owner-only check, verifies membership exists, deletes by composite key
+- **`ProjectMemberMapper`** (MapStruct) — two mapping paths: one for the `User` who is the project owner (role hardcoded to `OWNER` via `constant`), one for actual `ProjectMember` rows
+- **`ProjectMemberRepository.findByProjectId`**, **`UserRepository.findByEmail`** added
+
+### 🧠 Design Decisions / Notes
+- Owner is **not** stored as a `ProjectMember` row — it's derived from `Project.owner` and mapped separately with a hardcoded `OWNER` role via MapStruct's `constant`. This avoids a redundant membership row for every project's creator, but means any query for "all people with access to a project" has to combine both sources (as `getProjectMembers` does).
+- Reused the same `getAccessibleProjectById` pattern across both `ProjectServiceImpl` and `ProjectMemberServiceImpl` — good for consistency, though it's currently duplicated in both classes rather than shared from one place (see gaps below).
+
+### ⚠️ Known Gaps / Bugs to fix next
+- **`updateMemberRole` has no owner-only permission check.** `inviteMember` and `removeProjectMember` both verify `project.getOwner().getId().equals(userId)` before proceeding, but `updateMemberRole` skips this — right now any project member (not just the owner) could promote/demote roles. Add the same check here.
+- **`findAccessibleProjectById` still doesn't filter by `userId` in the query** (carried over from Day 3 — not addressed yet). This is now used by *more* code paths (`ProjectMemberServiceImpl` too), so it's a growing risk — worth fixing before adding more features on top of it.
+- Errors are all raised as plain `RuntimeException` with string messages (e.g. `"cannot invite yourself"`, `"member not found in project"`). These will surface as generic 500s to API clients right now. Needs custom exception types (e.g. `ForbiddenException`, `NotFoundException`, `ConflictException`) + the still-pending global `@ControllerAdvice`.
+- `getAccessibleProjectById` is duplicated verbatim in both `ProjectServiceImpl` and `ProjectMemberServiceImpl` — pull this into a shared place (e.g. a small internal helper/service or a repository method used directly) instead of copy-pasting.
+- `removeProjectMember`'s error message says `"Not allowed to invite member"` — copy-pasted from `inviteMember`, should say `"Not allowed to remove member"`.
+
+### 🔜 Next Steps
+1. Add the missing owner check in `updateMemberRole`.
+2. Fix the copy-pasted error message in `removeProjectMember`.
+3. Fix `findAccessibleProjectById` to properly scope by `userId` — this is now overdue.
+4. Introduce custom exception classes + a global `@ControllerAdvice` instead of raw `RuntimeException`.
+5. De-duplicate `getAccessibleProjectById` between the two service classes.
+6. Move on to `AuthServiceImpl` — everything so far still relies on a hardcoded/manual `userId`, not a real authenticated principal.
+
+---
+
 ## 📝 How to Use This Log
 
 Each entry should answer:

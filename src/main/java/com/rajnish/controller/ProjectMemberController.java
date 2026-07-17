@@ -46,9 +46,9 @@ public class ProjectMemberController {
     }
 
     @DeleteMapping("/{memberId}")
-    public ResponseEntity<Void> deleteMember(@PathVariable Long id, @PathVariable Long memberId){
+    public ResponseEntity<Void> removeProjectMember(@PathVariable Long id, @PathVariable Long memberId){
         Long userId=1L;
-        projectMemberService.deleteMember(id,memberId,userId);
+        projectMemberService.removeProjectMember(id,memberId,userId);
         return ResponseEntity.noContent().build();
     }
 }

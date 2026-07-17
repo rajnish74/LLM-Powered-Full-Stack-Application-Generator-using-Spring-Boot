@@ -150,10 +150,13 @@ Controllers and service contracts are wired up; business logic implementations a
 - [x] Controller layer + DTOs + service interfaces (contracts only, no logic yet)
 - [x] Repository layer (Project, User) + PostgreSQL wired via `application.yml`
 - [x] MapStruct mappers for entity ↔ DTO conversion
-- [x] First service implementation — `ProjectServiceImpl` (create + list; get/update/delete still stubbed)
+- [x] `ProjectServiceImpl` fully implemented (create, list, get, update, soft-delete)
+- [x] `ProjectMemberServiceImpl` fully implemented (list, invite, update role, remove)
 - [ ] Flyway/Liquibase migrations (replace `ddl-auto: update`)
 - [ ] Auth (Spring Security + JWT) — replace hardcoded `userId` in controllers
-- [ ] Remaining service implementations (Auth, ProjectMember, File, Subscription, Plan, Usage, User)
+- [ ] Fix ownership scoping in `findAccessibleProjectById` + missing permission check in `updateMemberRole`
+- [ ] Custom exceptions + global `@ControllerAdvice` (replace raw `RuntimeException`)
+- [ ] Remaining service implementations (Auth, File, Subscription, Plan, Usage, User)
 - [ ] Chat session + message APIs
 - [ ] LLM integration (prompt orchestration, tool calls)
 - [ ] File generation → MinIO storage integration
