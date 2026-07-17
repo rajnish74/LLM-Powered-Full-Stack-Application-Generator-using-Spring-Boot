@@ -29,12 +29,14 @@ Think of it as an open engineering take on tools like Lovable / v0 / bolt.new: a
 | Layer | Technology |
 |---|---|
 | Backend | Java, Spring Boot |
+| Database | PostgreSQL |
 | ORM | Spring Data JPA / Hibernate |
+| Mapping | MapStruct (entity ↔ DTO) |
 | Auth | (planned) Spring Security + JWT |
 | Object Storage | MinIO (project file contents) |
 | Preview Infra | Kubernetes (per-project pod + namespace) |
 | Billing | Stripe (Plans & Subscriptions) |
-| Boilerplate | Lombok (`@Getter/@Setter`, `@FieldDefaults`) |
+| Boilerplate | Lombok (`@Getter/@Setter`, `@FieldDefaults`, `@Builder`) |
 
 > 🔄 Tech stack is evolving — this table will be updated as new components (frontend, LLM provider, message queue, etc.) are added. See [`PROGRESS.md`](./PROGRESS.md) for the live log.
 
@@ -101,9 +103,10 @@ com.rajnish
 ├── entity              # JPA entities (domain model)
 ├── common.enums        # Shared enums (MessageRole, ProjectRole, etc.)
 ├── controller           # REST API layer — routing only, no business logic
-├── service              # Service interfaces defined; implementations (planned)
+├── service              # Service interfaces + impl/ (business logic — Project done, others pending)
+├── mapper               # MapStruct mappers (entity ↔ DTO)
+├── repository           # Spring Data JPA repositories (Project, User done)
 ├── dto                  # Request/response contracts (auth, project, member, file, subscriptions)
-├── repository           # (planned) Spring Data repositories
 ├── config               # (planned) Security, MinIO, Stripe, K8s client config
 └── llm                  # (planned) LLM orchestration layer
 ```
@@ -145,10 +148,12 @@ Controllers and service contracts are wired up; business logic implementations a
 
 - [x] Design core domain model (entities + enums)
 - [x] Controller layer + DTOs + service interfaces (contracts only, no logic yet)
-- [ ] Add JPA annotations (`@Entity`, `@Id`, `@ManyToOne`, etc.) + Flyway/Liquibase migrations
-- [ ] Repository layer
+- [x] Repository layer (Project, User) + PostgreSQL wired via `application.yml`
+- [x] MapStruct mappers for entity ↔ DTO conversion
+- [x] First service implementation — `ProjectServiceImpl` (create + list; get/update/delete still stubbed)
+- [ ] Flyway/Liquibase migrations (replace `ddl-auto: update`)
 - [ ] Auth (Spring Security + JWT) — replace hardcoded `userId` in controllers
-- [ ] Service implementations — business logic (starting with Auth + Project)
+- [ ] Remaining service implementations (Auth, ProjectMember, File, Subscription, Plan, Usage, User)
 - [ ] Chat session + message APIs
 - [ ] LLM integration (prompt orchestration, tool calls)
 - [ ] File generation → MinIO storage integration

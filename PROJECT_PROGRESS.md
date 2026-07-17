@@ -86,6 +86,42 @@ Tracking daily/weekly progress on this project. **New entries go at the bottom**
 
 ---
 
+## 📅 2026-07-17 — Day 3: Repository Layer, MapStruct, First Service Implementation
+
+**Goal for the day:** Get one full vertical slice working — `Project` — from DB query up through mapping to response DTOs.
+
+### ✅ Completed
+- **Repository layer**: `ProjectRepository`, `UserRepository` (Spring Data JPA)
+  - `findAllAccessibleByUser` — custom JPQL query, excludes soft-deleted projects, ordered by `updatedAt DESC`
+  - `findAccessibleProjectById` — fetch single project by id, excludes soft-deleted
+- **MapStruct** introduced for entity → DTO mapping: `ProjectMapper` (`toProjectResponse`, `toProjectSummaryResponse` with field rename `name` → `projectName`, `toListOfProjectSummaryResponse`)
+- **First real service implementation**: `ProjectServiceImpl`
+  - `createProject` — fully implemented (fetch owner, build project, save, map to response)
+  - `getUserProjects` — fully implemented using the repository + mapper
+  - `getProjectById`, `updateProject`, `softDelete` — stubbed (return `null` / empty for now)
+- **Database config**: PostgreSQL wired via `application.yml`, Hibernate `ddl-auto: update`, `llm-fullstack-gen` app name, running on port `8000`
+
+### 🧠 Design Decisions / Notes
+- Chose **MapStruct** over manual mapping or ModelMapper — compile-time generated mappers, no reflection overhead, and mapping mismatches (like `name` → `projectName`) get caught at build time.
+- `ddl-auto: update` is fine for solo local development right now, but this is explicitly a **temporary convenience** — flagged below as a gap since it's unsafe for anything beyond local dev.
+
+### ⚠️ Known Gaps / Bugs to fix next
+- **Security: hardcoded DB password in `application.yml`** (`DB_PASSWORD:Ranjit24` as a default fallback). This must never reach a public (or even private) remote as-is. Fix: remove the default value, rely purely on the env var, and rotate the DB password since it was written in plaintext.
+- **`findAccessibleProjectById` doesn't actually filter by `userId`** — the `@Param("userId")` is declared but never used in the JPQL query. Right now *any* user could fetch *any* project by id as long as it isn't soft-deleted. This needs an ownership/membership check in the query (or in the service layer) before `getProjectById` is implemented on top of it.
+- `getProjectById`, `updateProject`, `softDelete` are still stubs — no logic yet.
+- `getUserProjects` has a commented-out duplicate implementation left in the file — clean this up (dead code).
+- `ddl-auto: update` should move to Flyway/Liquibase migrations before this goes anywhere near a shared or production database.
+- `show-sql: true` is fine for now but should be turned off (or moved to a dev-only profile) later — noisy and slightly risky in shared logs.
+
+### 🔜 Next Steps
+1. Fix the `application.yml` password issue immediately (see note above).
+2. Fix `findAccessibleProjectById` to actually scope by `userId` (ownership or membership check).
+3. Implement `getProjectById`, `updateProject`, `softDelete` in `ProjectServiceImpl`.
+4. Remove the commented-out dead code in `getUserProjects`.
+5. Start `UserMapper` + `UserServiceImpl` / `AuthServiceImpl` next, since `ProjectServiceImpl` currently does a raw `userRepository.findById(userId).orElseThrow()` with no real auth backing it yet.
+
+---
+
 ## 📝 How to Use This Log
 
 Each entry should answer:
