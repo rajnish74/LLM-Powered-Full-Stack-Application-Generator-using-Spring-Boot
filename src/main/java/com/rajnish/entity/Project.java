@@ -15,6 +15,13 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@Table(name = "projects",
+        indexes = {
+                @Index(name = "idx_projects_updated_t_desc", columnList = "updated_at DESC, deleted_at"),
+                @Index(name = "idx_projects_deleted_at", columnList = "deleted_at")
+        }
+
+)
 public class Project {
 
     @Id
@@ -24,9 +31,6 @@ public class Project {
     @Column(nullable = false)
     String name;
 
-    @ManyToOne
-    @JoinColumn(nullable = false,name = "owner_id")
-    User owner;
     Boolean isPublic=false;
 
     @CreationTimestamp

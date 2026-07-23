@@ -21,11 +21,10 @@ public class User {
 
     private String name;
 
-    private String email;
+    private String username;
 
-    private String passwordHash;
+    private String password;
 
-    private String avatarUrl;
 
     @CreationTimestamp
     private Instant createdAt;

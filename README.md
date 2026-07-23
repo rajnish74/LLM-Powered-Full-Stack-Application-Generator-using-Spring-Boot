@@ -32,7 +32,7 @@ Think of it as an open engineering take on tools like Lovable / v0 / bolt.new: a
 | Database | PostgreSQL |
 | ORM | Spring Data JPA / Hibernate |
 | Mapping | MapStruct (entity ↔ DTO) |
-| Auth | (planned) Spring Security + JWT |
+| Auth | Spring Security (BCrypt + stateless sessions wired; JWT filter pending) |
 | Object Storage | MinIO (project file contents) |
 | Preview Infra | Kubernetes (per-project pod + namespace) |
 | Billing | Stripe (Plans & Subscriptions) |
@@ -101,13 +101,15 @@ cd <repo-name>
 ```
 com.rajnish
 ├── entity              # JPA entities (domain model)
-├── common.enums        # Shared enums (MessageRole, ProjectRole, etc.)
+├── common
+│   ├── enums            # Shared enums (MessageRole, ProjectRole, etc.)
+│   ├── exceptions        # ApiError, BadRequestException, ResourceNotFoundException, GlobalExceptionHandler
+│   └── security          # WebSecurityConfig (BCrypt, stateless sessions; JWT filter pending)
 ├── controller           # REST API layer — routing only, no business logic
-├── service              # Service interfaces + impl/ (business logic — Project done, others pending)
+├── service              # Service interfaces + impl/ (Project, ProjectMember done; Auth signup done, login pending)
 ├── mapper               # MapStruct mappers (entity ↔ DTO)
-├── repository           # Spring Data JPA repositories (Project, User done)
+├── repository           # Spring Data JPA repositories (Project, ProjectMember, User done)
 ├── dto                  # Request/response contracts (auth, project, member, file, subscriptions)
-├── config               # (planned) Security, MinIO, Stripe, K8s client config
 └── llm                  # (planned) LLM orchestration layer
 ```
 
@@ -148,15 +150,17 @@ Controllers and service contracts are wired up; business logic implementations a
 
 - [x] Design core domain model (entities + enums)
 - [x] Controller layer + DTOs + service interfaces (contracts only, no logic yet)
-- [x] Repository layer (Project, User) + PostgreSQL wired via `application.yml`
+- [x] Repository layer (Project, ProjectMember, User) + PostgreSQL wired via `application.yml`
 - [x] MapStruct mappers for entity ↔ DTO conversion
 - [x] `ProjectServiceImpl` fully implemented (create, list, get, update, soft-delete)
 - [x] `ProjectMemberServiceImpl` fully implemented (list, invite, update role, remove)
+- [x] Custom exceptions + global `@RestControllerAdvice` (`ApiError`, `BadRequestException`, `ResourceNotFoundException`)
+- [x] Spring Security scaffolding (BCrypt, stateless sessions) — `/api/**` still `permitAll()` until JWT lands
+- [x] `AuthServiceImpl.signup` implemented — `login` still a stub
 - [ ] Flyway/Liquibase migrations (replace `ddl-auto: update`)
-- [ ] Auth (Spring Security + JWT) — replace hardcoded `userId` in controllers
+- [ ] JWT generation/validation + security filter — replace hardcoded `userId` in controllers
 - [ ] Fix ownership scoping in `findAccessibleProjectById` + missing permission check in `updateMemberRole`
-- [ ] Custom exceptions + global `@ControllerAdvice` (replace raw `RuntimeException`)
-- [ ] Remaining service implementations (Auth, File, Subscription, Plan, Usage, User)
+- [ ] Remaining service implementations (File, Subscription, Plan, Usage, User)
 - [ ] Chat session + message APIs
 - [ ] LLM integration (prompt orchestration, tool calls)
 - [ ] File generation → MinIO storage integration

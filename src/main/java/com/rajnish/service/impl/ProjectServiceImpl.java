@@ -1,12 +1,16 @@
 package com.rajnish.service.impl;
 
+import com.rajnish.common.enums.ProjectRole;
 import com.rajnish.common.exceptions.ResourceNotFoundException;
 import com.rajnish.dto.project.request.ProjectRequest;
 import com.rajnish.dto.project.response.ProjectResponse;
 import com.rajnish.dto.project.response.ProjectSummaryResponse;
 import com.rajnish.entity.Project;
+import com.rajnish.entity.ProjectMember;
+import com.rajnish.entity.ProjectMemberId;
 import com.rajnish.entity.User;
 import com.rajnish.mapper.ProjectMapper;
+import com.rajnish.repository.ProjectMemberRepository;
 import com.rajnish.repository.ProjectRepository;
 import com.rajnish.repository.UserRepository;
 import com.rajnish.service.ProjectService;
@@ -26,18 +30,32 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectMapper  projectMapper;
+    private final ProjectMemberRepository  projectMemberRepository;
 
     @Override
     public ProjectResponse createProject(Long userId, ProjectRequest request) {
-        User owner = userRepository.findById(userId).orElseThrow();
+        User owner = userRepository.findById(userId).orElseThrow(
+                ()->new ResourceNotFoundException("User not found with id: " + userId, "USER_NOT_FOUND")
+        );
 
         Project project = Project.builder()
                 .name(request.name())
-                .owner(owner)
                 .isPublic(false)
                 .build();
 
         project = projectRepository.save(project);
+
+        ProjectMemberId projectMemberId = new ProjectMemberId(project.getId(), owner.getId());
+        ProjectMember projectMember=ProjectMember.builder()
+                .id(projectMemberId)
+                .projectRole(ProjectRole.OWNER)
+                .user(owner)
+                .acceptedAt(Instant.now())
+                .invitedAt(Instant.now())
+                .project(project)
+                .build();
+
+        projectMemberRepository.save(projectMember);
         return projectMapper.toProjectResponse(project);
     }
 
@@ -65,9 +83,6 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectResponse updateProject(Long userId, Long id, ProjectRequest request) {
         Project project = getAccessibleProjectById(id,userId);
 
-        if(!project.getOwner().getId().equals(userId)){
-            throw new RuntimeException("You can't update this project");
-        }
 
         project.setName(request.name());
         project = projectRepository.save(project);
@@ -78,9 +93,6 @@ public class ProjectServiceImpl implements ProjectService {
     public void softDelete(Long userId, Long id) {
         Project project = getAccessibleProjectById(id,userId);
 
-        if(!project.getOwner().getId().equals(userId)){
-            throw new RuntimeException("You can't delete this project");
-        }
 
         project.setDeletedAt(Instant.now());
         projectRepository.save(project);

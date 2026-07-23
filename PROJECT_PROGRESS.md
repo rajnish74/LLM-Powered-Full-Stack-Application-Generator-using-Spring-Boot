@@ -161,6 +161,47 @@ Tracking daily/weekly progress on this project. **New entries go at the bottom**
 
 ---
 
+## 📅 2026-07-23 — Day 5: Exception Handling, Security Config, Auth Signup
+
+**Goal for the day:** Build a proper validation/exception layer, wire up Spring Security scaffolding, and implement the signup flow.
+
+### ✅ Completed
+- **Exception handling** (`com.rajnish.common.exceptions`):
+  - `ApiError` record — standard error response shape (`status`, `message`, `timeStamp`, optional `errors` list, `NON_NULL` so `errors` is omitted when empty)
+  - `ApiFieldError` record — per-field validation error (`field`, `message`)
+  - `BadRequestException`, `ResourceNotFoundException` — custom exception types
+  - `GlobalExceptionHandler` (`@RestControllerAdvice`) — handles `BadRequestException`, `ResourceNotFoundException`, and `MethodArgumentNotValidException` (bean validation failures), logs each error, returns a consistent `ApiError` response
+- **Security scaffolding** (`com.rajnish.common.security`):
+  - `WebSecurityConfig` — stateless session policy, CSRF disabled (appropriate for a stateless JSON API), `BCryptPasswordEncoder` bean, `AuthenticationManager` bean
+  - **Note:** `/api/**` is currently `permitAll()` — this is intentionally open for now since there's no JWT filter yet; it is not real protection.
+- **`AuthServiceImpl.signup`** implemented:
+  - Checks for existing username, throws `BadRequestException` if taken
+  - Maps request → entity via `UserMapper`, encodes password with `BCryptPasswordEncoder`, saves
+  - Returns `AuthResponse` with a placeholder `"dummy"` token (real JWT generation commented out — `authUtils.generateAccessToken(user)` doesn't exist yet)
+  - `login` is still a stub (returns `null`)
+
+### 🧠 Design Decisions / Notes
+- Went with a **generic `ApiError` shape** across all exception types instead of custom shapes per exception — makes frontend error handling predictable regardless of which endpoint failed.
+- `ResourceNotFoundException` carries `resourceName` + `resourceId` separately rather than a pre-built message — lets `GlobalExceptionHandler` format the message consistently in one place instead of every throw-site writing its own string.
+- Password hashing done at the service layer (not in the mapper or entity) — keeps `UserMapper` a pure structural mapper with no security-sensitive logic in it.
+
+### ⚠️ Known Gaps / Bugs to fix next
+- **`/api/**` is fully open (`permitAll()`) with no JWT filter yet.** This is expected at this stage but is a hard blocker before anything resembling real auth — every controller's hardcoded `userId = 1L` is still the actual security model right now, not Spring Security.
+- **`login()` is unimplemented** — no way to actually authenticate yet, so signup produces a user but there's no way back in.
+- Real JWT token generation is commented out — `authUtils` (or equivalent JWT utility class) needs to be built: token generation, token validation, and a filter to extract the authenticated user from the request.
+- `ApiFieldError` is declared as a **package-private record** (no `public` modifier). It currently works because `GlobalExceptionHandler` is in the same package, but this is fragile — worth making it `public` explicitly so it can't silently break if the handler ever moves packages.
+- `AuthServiceImpl` uses `userRepository.findByUsername(...)` and `user.setPassword(...)` — worth double-checking these fields/methods exist on the current `User` entity and `UserRepository`, since the entity as originally designed only had `email` / `passwordHash` (no separate `username`). If `username` was added since, note it in the domain model section of the README too.
+- No rate limiting or attempt-throttling on `/api/auth/login` or `/api/auth/signup` yet — worth keeping in mind once `login` is implemented (brute-force protection).
+
+### 🔜 Next Steps
+1. Implement `login()` — verify credentials with `PasswordEncoder.matches()`, and issue a real token.
+2. Build the JWT utility (generate + validate) and a `OncePerRequestFilter` to populate the security context from the token.
+3. Lock down `WebSecurityConfig` — replace `permitAll()` with real rules (public: `/api/auth/**`; everything else: authenticated).
+4. Replace hardcoded `userId = 1L` across all controllers with the authenticated principal from the security context — this has been a known gap since Day 2 and is now finally unblockable.
+5. Confirm `User` entity fields match what `AuthServiceImpl` expects (`username`, `password` setter) and update the domain model docs if the entity changed.
+
+---
+
 ## 📝 How to Use This Log
 
 Each entry should answer:
