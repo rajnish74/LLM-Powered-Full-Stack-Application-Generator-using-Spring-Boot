@@ -1,5 +1,6 @@
 package com.rajnish.service.impl;
 
+import com.rajnish.common.exceptions.ResourceNotFoundException;
 import com.rajnish.dto.project.request.ProjectRequest;
 import com.rajnish.dto.project.response.ProjectResponse;
 import com.rajnish.dto.project.response.ProjectSummaryResponse;
@@ -88,6 +89,7 @@ public class ProjectServiceImpl implements ProjectService {
 
 //    internal function
     public Project getAccessibleProjectById(Long projectId, Long userId) {
-        return projectRepository.findAccessibleProjectById(projectId, userId).orElseThrow();
+        return projectRepository.findAccessibleProjectById(projectId, userId)
+                .orElseThrow(()-> new ResourceNotFoundException("Project", projectId.toString()));
     }
 }

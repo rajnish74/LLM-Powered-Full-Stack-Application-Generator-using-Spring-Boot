@@ -4,6 +4,7 @@ import com.rajnish.dto.project.request.ProjectRequest;
 import com.rajnish.dto.project.response.ProjectResponse;
 import com.rajnish.dto.project.response.ProjectSummaryResponse;
 import com.rajnish.service.ProjectService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,13 +32,13 @@ public class ProjectController {
     }
 
     @PostMapping
-    public ResponseEntity<ProjectResponse> createProject(@RequestBody ProjectRequest request){
+    public ResponseEntity<ProjectResponse> createProject(@RequestBody @Valid ProjectRequest request){
         Long userId=1L;
         return ResponseEntity.status(HttpStatus.CREATED).body(projectService.createProject(userId,request));
     }
 
     @PatchMapping("/{id}")
-    public ResponseEntity<ProjectResponse> updateProject(@PathVariable Long id, @RequestBody ProjectRequest request){
+    public ResponseEntity<ProjectResponse> updateProject(@PathVariable Long id, @RequestBody @Valid ProjectRequest request){
         Long userId=1L;
         return ResponseEntity.ok(projectService.updateProject(userId,id,request));
     }
