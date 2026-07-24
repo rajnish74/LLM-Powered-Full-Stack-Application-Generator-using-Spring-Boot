@@ -32,7 +32,7 @@ Think of it as an open engineering take on tools like Lovable / v0 / bolt.new: a
 | Database | PostgreSQL |
 | ORM | Spring Data JPA / Hibernate |
 | Mapping | MapStruct (entity ↔ DTO) |
-| Auth | Spring Security (BCrypt + stateless sessions wired; JWT filter pending) |
+| Auth | Spring Security + JWT (jjwt) — login/signup issue real tokens, `JwtAuthFilter` reads `Authorization: Bearer` |
 | Object Storage | MinIO (project file contents) |
 | Preview Infra | Kubernetes (per-project pod + namespace) |
 | Billing | Stripe (Plans & Subscriptions) |
@@ -49,7 +49,7 @@ Think of it as an open engineering take on tools like Lovable / v0 / bolt.new: a
 | Entity | Responsibility |
 |---|---|
 | `User` | Core account — auth identity, profile |
-| `Project` | A single app/workspace a user is building |
+| `Project` | A single app/workspace a user is building. Ownership is expressed via a `ProjectMember` row with role `OWNER` (created automatically alongside the project), not a separate owner field. |
 | `ProjectMember` (+ `ProjectMemberId`) | Many-to-many collaborators on a project, with `ProjectRole` (`OWNER`, `EDITOR`, `VIEWER`) |
 | `ChatSession` | One conversation thread scoped to a project + user |
 | `ChatMessage` | Individual message in a session (`role`, `content`, `toolCalls`, `tokensUsed`) |
@@ -155,12 +155,13 @@ Controllers and service contracts are wired up; business logic implementations a
 - [x] `ProjectServiceImpl` fully implemented (create, list, get, update, soft-delete)
 - [x] `ProjectMemberServiceImpl` fully implemented (list, invite, update role, remove)
 - [x] Custom exceptions + global `@RestControllerAdvice` (`ApiError`, `BadRequestException`, `ResourceNotFoundException`)
-- [x] Spring Security scaffolding (BCrypt, stateless sessions) — `/api/**` still `permitAll()` until JWT lands
-- [x] `AuthServiceImpl.signup` implemented — `login` still a stub
+- [x] JWT auth end-to-end: signup, login, `JwtAuthFilter`, `AuthUtils.getCurrentUserId()` — hardcoded `userId` removed from all controllers/services
+- [x] Ownership scoping fixed in `findAccessibleProjectById` (now scoped via `ProjectMember` `EXISTS` subquery)
+- [ ] **Fix permission regression**: `inviteMember` / `updateMemberRole` / `removeProjectMember` no longer check the caller is an `OWNER` (lost when `Project.owner` was replaced by `ProjectMember` rows)
+- [ ] Verify `JwtAuthFilter` is registered in the security filter chain + `permitAll()` is tightened
 - [ ] Flyway/Liquibase migrations (replace `ddl-auto: update`)
-- [ ] JWT generation/validation + security filter — replace hardcoded `userId` in controllers
-- [ ] Fix ownership scoping in `findAccessibleProjectById` + missing permission check in `updateMemberRole`
-- [ ] Remaining service implementations (File, Subscription, Plan, Usage, User)
+- [ ] `UserServiceImpl.getProfile()` still unimplemented
+- [ ] Remaining service implementations (File, Subscription, Plan, Usage)
 - [ ] Chat session + message APIs
 - [ ] LLM integration (prompt orchestration, tool calls)
 - [ ] File generation → MinIO storage integration

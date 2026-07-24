@@ -202,6 +202,47 @@ Tracking daily/weekly progress on this project. **New entries go at the bottom**
 
 ---
 
+## 📅 2026-07-24 — Day 6: JWT Auth Wired End-to-End, Ownership Model Reworked
+
+**Goal for the day:** Replace the hardcoded `userId = 1L` everywhere with real authentication, and finish the login flow.
+
+### ✅ Completed
+- **JWT infrastructure** (`com.rajnish.common.security`):
+  - `JwtUserPrinciple` (record) — `userId`, `username`, `authorities`
+  - `AuthUtils` — `generateAccessToken(User)`, `verifyAccessToken(String)`, `getCurrentUserId()` (reads from `SecurityContextHolder`, throws `AuthenticationCredentialsNotFoundException` if no JWT principal present)
+  - `JwtAuthFilter` (`OncePerRequestFilter`) — reads `Authorization: Bearer <token>`, verifies it, populates `SecurityContextHolder` with a `UsernamePasswordAuthenticationToken`
+- **`User` entity is now fully JPA-mapped**: `@Entity`, `@Table(name = "users")`, `@Id @GeneratedValue`, `@CreationTimestamp`/`@UpdateTimestamp`, and now **implements `UserDetails`** (Spring Security). Fields are now `username` + `password` (matches what `AuthServiceImpl` was already using).
+- **`AuthServiceImpl.login` implemented** — delegates to Spring's `AuthenticationManager`, extracts the authenticated `User`, issues a real JWT via `AuthUtils.generateAccessToken`.
+- **`UserServiceImpl`** added, implements `UserDetailsService.loadUserByUsername` (needed by Spring Security for the `AuthenticationManager` to work). `getProfile()` is still a stub.
+- **Removed `userId` parameters everywhere** — `ProjectService`, `ProjectMemberService` interfaces, their impls, and `ProjectController`/`ProjectMemberController` no longer take/pass `userId` at all. It's now pulled from `AuthUtils.getCurrentUserId()` inside each service method. **This finally closes the "hardcoded userId = 1L" gap that's been flagged since Day 2.**
+- **`ProjectRepository` queries are now properly scoped by `userId`** via an `EXISTS` subquery against `ProjectMember` — **this closes the ownership-scoping security gap flagged on Day 3 and Day 4.**
+- **Ownership model changed**: a project's owner is no longer just a `Project.owner` field — `createProject` now also inserts a `ProjectMember` row for the creator with `ProjectRole.OWNER`. Ownership/access is now fully expressed through `ProjectMember` rows.
+
+### 🧠 Design Decisions / Notes
+- Modeling the owner as a `ProjectMember` row (role = `OWNER`) instead of a separate `Project.owner` field unifies "who can access this project" into one table/query path — `getProjectMembers` no longer needs to special-case the owner separately (Day 4's `toProjectMemberResponseFromOwner` mapping path is no longer needed for this flow).
+- `getCurrentUserId()` centralizes "who is making this request" in one place (`AuthUtils`), so services stay free of any direct `SecurityContextHolder` calls.
+
+### 🚨 New Issue Introduced (higher priority than the "next steps" below)
+- **Permission checks were lost in the ownership model change.** Previously, `inviteMember` and `removeProjectMember` checked `project.getOwner().getId().equals(userId)` before proceeding. Now that `Project.owner` no longer exists (ownership lives in `ProjectMember` rows), **that check was removed entirely rather than replaced** — `inviteMember`, `updateMemberRole`, and `removeProjectMember` now only verify the caller has *some* access to the project (via `getAccessibleProjectById`), not that they're specifically an `OWNER`. Right now any project member — including a `VIEWER` — can invite people, remove people, and change anyone's role. This needs a role check (e.g. fetch the caller's own `ProjectMember` row and assert `projectRole == OWNER`, or introduce an `EDITOR`/`OWNER`-only rule per action) before this goes further.
+
+### ⚠️ Other Known Gaps / Bugs to fix next
+- **`UserServiceImpl.loadUserByUsername` calls `ResourceNotFoundException` incorrectly**: `new ResourceNotFoundException("User not found with username: " + username, "User not found with id")` — the constructor expects `(resourceName, resourceId)`, but this passes a full sentence as the "name" and another sentence as the "id". `GlobalExceptionHandler` will format this into a garbled message. Fix: `new ResourceNotFoundException("User", username)`.
+- **Confirm `JwtAuthFilter` is actually registered in `WebSecurityConfig`'s filter chain** (e.g. `.addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)`) and that the `permitAll()` rule from Day 5 has been tightened to require authentication on protected routes. The filter class existing isn't enough by itself — this wasn't shown in today's changes, so it needs verifying (or is the very next thing to do if not done yet).
+- **`jwt.secret-key` comes from `application.yml`** (`@Value("${jwt.secret-key}")`) — same category of risk as the DB password from Day 3. Confirm it's env-var-backed with no plaintext default committed to the repo.
+- `createProject` uses `userRepository.getReferenceById(userId)` instead of `findById(...).orElseThrow(...)`. This returns a lazy proxy without hitting the DB immediately — if the user somehow doesn't exist, the failure will surface later (e.g. as a `EntityNotFoundException` on access) instead of a clean `ResourceNotFoundException` up front. Worth deciding intentionally whether that trade-off is acceptable here.
+- `UserServiceImpl.getProfile()` is still unimplemented (`return null`) — `/api/auth/me` will break until this is done.
+- Access token expiry is short (10 minutes) with no refresh token flow yet — fine for now, but note it before this feels like a bug in manual testing.
+
+### 🔜 Next Steps
+1. **Fix the permission regression** — add proper `OWNER`-only (or role-based) checks back into `inviteMember`, `updateMemberRole`, `removeProjectMember`.
+2. Fix the malformed `ResourceNotFoundException` call in `UserServiceImpl`.
+3. Verify/complete `JwtAuthFilter` registration in `WebSecurityConfig` + tighten `permitAll()`.
+4. Confirm `jwt.secret-key` is not hardcoded in committed config.
+5. Implement `UserServiceImpl.getProfile()`.
+6. Start thinking about refresh tokens if 10-minute expiry becomes annoying during testing.
+
+---
+
 ## 📝 How to Use This Log
 
 Each entry should answer:

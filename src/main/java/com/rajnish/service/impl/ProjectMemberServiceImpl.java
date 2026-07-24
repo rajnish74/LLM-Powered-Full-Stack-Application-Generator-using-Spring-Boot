@@ -1,5 +1,6 @@
 package com.rajnish.service.impl;
 
+import com.rajnish.common.security.AuthUtils;
 import com.rajnish.dto.member.InviteMemberRequest;
 import com.rajnish.dto.member.MemberResponse;
 import com.rajnish.dto.member.UpdateMemberRoleRequest;
@@ -28,9 +29,11 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberMapper projectMemberMapper;
     private final UserRepository userRepository;
+    private final AuthUtils  authUtils;
 
     @Override
-    public List<MemberResponse> getProjectMembers(Long projectId, Long userId) {
+    public List<MemberResponse> getProjectMembers(Long projectId) {
+        Long userId = authUtils.getCurrentUserId();
         Project project = getAccessibleProjectById(projectId, userId);
 
 
@@ -41,7 +44,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
     @Override
-    public MemberResponse inviteMember(Long projectId, InviteMemberRequest request, Long userId) {
+    public MemberResponse inviteMember(Long projectId, InviteMemberRequest request) {
+        Long userId = authUtils.getCurrentUserId();
         Project project = getAccessibleProjectById(projectId, userId);
         User invitee = userRepository.findByUsername(request.username()).orElseThrow();
 
@@ -67,7 +71,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
     @Override
-    public MemberResponse updateMemberRole(Long projectId, Long memberId, UpdateMemberRoleRequest request, Long userId) {
+    public MemberResponse updateMemberRole(Long projectId, Long memberId, UpdateMemberRoleRequest request) {
+        Long userId = authUtils.getCurrentUserId();
         Project project=getAccessibleProjectById(projectId,userId);
 
         ProjectMemberId projectMemberId = new ProjectMemberId(projectId, memberId);
@@ -81,7 +86,8 @@ public class ProjectMemberServiceImpl implements ProjectMemberService {
     }
 
     @Override
-    public void removeProjectMember(Long projectId, Long memberId, Long userId) {
+    public void removeProjectMember(Long projectId, Long memberId) {
+        Long userId = authUtils.getCurrentUserId();
         Project project=getAccessibleProjectById(projectId,userId);
 
 

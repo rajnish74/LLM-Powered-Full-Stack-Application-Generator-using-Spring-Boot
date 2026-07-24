@@ -1,5 +1,6 @@
 package com.rajnish.controller;
 
+import com.rajnish.common.security.AuthUtils;
 import com.rajnish.dto.project.request.ProjectRequest;
 import com.rajnish.dto.project.response.ProjectResponse;
 import com.rajnish.dto.project.response.ProjectSummaryResponse;
@@ -18,35 +19,31 @@ import java.util.List;
 public class ProjectController {
 
     private final ProjectService projectService;
+    private final AuthUtils  authUtils;
 
     @GetMapping
     public ResponseEntity<List<ProjectSummaryResponse>> getProjects(){
-        Long userId=1L;
-        return ResponseEntity.ok(projectService.getUserProjects(userId));
+        return ResponseEntity.ok(projectService.getUserProjects());
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<ProjectResponse> getProjectById(@PathVariable Long id){
-        Long userId=1L;
-        return ResponseEntity.ok(projectService.getProjectById(userId,id));
+        return ResponseEntity.ok(projectService.getProjectById(id));
     }
 
     @PostMapping
     public ResponseEntity<ProjectResponse> createProject(@RequestBody @Valid ProjectRequest request){
-        Long userId=1L;
-        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.createProject(userId,request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(projectService.createProject(request));
     }
 
     @PatchMapping("/{id}")
     public ResponseEntity<ProjectResponse> updateProject(@PathVariable Long id, @RequestBody @Valid ProjectRequest request){
-        Long userId=1L;
-        return ResponseEntity.ok(projectService.updateProject(userId,id,request));
+        return ResponseEntity.ok(projectService.updateProject(id,request));
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteProject(@PathVariable Long id){
-        Long userId=1L;
-        projectService.softDelete(userId,id);
+        projectService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
 }

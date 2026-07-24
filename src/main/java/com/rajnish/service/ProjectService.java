@@ -7,13 +7,13 @@ import com.rajnish.dto.project.response.ProjectSummaryResponse;
 import java.util.List;
 
 public interface ProjectService {
-    List<ProjectSummaryResponse> getUserProjects(Long userId);
+    List<ProjectSummaryResponse> getUserProjects();
 
-    ProjectResponse getProjectById(Long userId, Long id);
+    ProjectResponse getProjectById(Long id);
 
-    ProjectResponse createProject(Long userId, ProjectRequest request);
+    ProjectResponse createProject(ProjectRequest request);
 
-    ProjectResponse updateProject(Long userId, Long id, ProjectRequest request);
+    ProjectResponse updateProject(Long id, ProjectRequest request);
 
-    void softDelete(Long userId, Long id);
+    void softDelete( Long id);
 }
